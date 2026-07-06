@@ -1,0 +1,10 @@
+{
+  "projects": {
+    "default": "vindt-shop-81009502",
+    "vindt": "vindt-shop-2f8a0",
+    "vindti": "vindt-cloth",
+    "production": "vindt-cloth"
+  },
+  "targets": {},
+  "etags": {}
+}

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Vindt shop - Premium Vintage Clothing Shop">
+    <title>Vindt shop - Premium Vintage</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Naver Login SDK -->
+    <script src="https://static.nid.naver.com/js/naveridlogin_js_sdk_2.0.2.js" charset="utf-8"></script>
+    <script>
+        if (window.location.protocol === 'file:') {
+            alert('CRITICAL ERROR: This app cannot run directly from the file system due to browser security restrictions (CORS).\n\nPlease use a local server.\n\nVS Code: Right-click index.html > "Open with Live Server"\nTerminal: npx serve');
+        }
+    </script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header__inner">
+            <div class="hamburger" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <a href="/" class="header__logo">Vindt shop</a>
+            <div class="header__actions">
+                <!-- Language Selector -->
+                <div class="lang-selector">
+                    <button type="button" class="lang-selector__btn">
+                        <span class="lang-selector__current">한국어</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                    </button>
+                    <div class="lang-selector__dropdown">
+                        <button class="lang-option active" data-lang="ko">한국어</button>
+                        <button class="lang-option" data-lang="en">English</button>
+                        <button class="lang-option" data-lang="ja">日本語</button>
+                        <button class="lang-option" data-lang="zh">中文</button>
+                        <button class="lang-option" data-lang="vi">Tiếng Việt</button>
+                    </div>
+                </div>
+                <button type="button" class="header__icon search-icon" aria-label="Search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                </button>
+                <button type="button" class="header__icon wishlist-icon" aria-label="Wishlist">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    <span class="wishlist-count" style="display:none;">0</span>
+                </button>
+                <button type="button" class="header__icon cart-icon" aria-label="Cart">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <path d="M16 10a4 4 0 01-8 0" />
+                    </svg>
+                    <span class="cart-count" style="display:none;">0</span>
+                </button>
+                <button type="button" class="header__icon login-icon" aria-label="Login">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Overlay -->
+    <nav class="nav-overlay">
+        <ul class="nav-overlay__list">
+            <li class="nav-overlay__item"><a href="#" class="nav-overlay__link board-link"
+                    data-board="notice">Notice</a></li>
+            <li class="nav-overlay__item"><a href="#" class="nav-overlay__link board-link"
+                    data-board="review">Review</a></li>
+            <li class="nav-overlay__item"><a href="#" class="nav-overlay__link board-link" data-board="qna">Q&A</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero__content">
+            <h1 class="hero__title" data-i18n="heroTitle">Timeless Vintage</h1>
+            <p class="hero__subtitle" data-i18n="heroSubtitle">Curated collection of authentic vintage pieces from the
+                1950s to 1990s</p>
+        </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="filters">
+        <div class="container">
+            <div class="filters__inner">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="premium">Premium</button>
+                    <button class="filter-tab" data-filter="outer">Outer</button>
+                    <button class="filter-tab" data-filter="top">Top</button>
+                    <button class="filter-tab" data-filter="bottom">Bottom</button>
+                    <button class="filter-tab" data-filter="dress">Dress</button>
+                    <button class="filter-tab" data-filter="acc">Acc</button>
+                    <button class="filter-tab filter-tab--sale" data-filter="sale">SALE</button>
+                </div>
+                <div class="view-options">
+                    <button class="view-btn view-btn--active" data-cols="2" aria-label="2 columns">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <rect x="3" y="3" width="8" height="8" />
+                            <rect x="13" y="3" width="8" height="8" />
+                            <rect x="3" y="13" width="8" height="8" />
+                            <rect x="13" y="13" width="8" height="8" />
+                        </svg>
+                    </button>
+                    <button class="view-btn" data-cols="3" aria-label="3 columns">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <rect x="2" y="3" width="5" height="8" />
+                            <rect x="9" y="3" width="6" height="8" />
+                            <rect x="17" y="3" width="5" height="8" />
+                            <rect x="2" y="13" width="5" height="8" />
+                            <rect x="9" y="13" width="6" height="8" />
+                            <rect x="17" y="13" width="5" height="8" />
+                        </svg>
+                    </button>
+                    <button class="view-btn" data-cols="1" aria-label="Large view">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <rect x="3" y="3" width="18" height="18" />
+                        </svg>
+                    </button>
+                </div>
+                <select class="sort-select">
+                    <option value="newest">Newest</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="discount">Discount</option>
+                </select>
+            </div>
+            <!-- Subcategory filters -->
+            <div class="subcategory-tabs" style="display:none;">
+                <button class="subcategory-tab active" data-sub="all">All</button>
+                <button class="subcategory-tab" data-sub="man">Man</button>
+                <button class="subcategory-tab" data-sub="woman">Woman</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Grid -->
+    <section class="products">
+        <div class="container">
+            <div class="products__grid"></div>
+            <div class="load-more">
+                <button class="load-more__btn">Load More</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recently Viewed Section -->
+    <section class="recent-section">
+        <div class="container">
+            <h2 class="section-title">Recently Viewed</h2>
+            <div class="recent-products"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div>
+                    <h4 class="footer__title">Shop</h4>
+                    <ul class="footer__links">
+                        <li><a href="#" class="footer__link">New Arrivals</a></li>
+                        <li><a href="#" class="footer__link">Premium</a></li>
+                        <li><a href="#" class="footer__link">Outer</a></li>
+                        <li><a href="#" class="footer__link">Tops</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer__title">Info</h4>
+                    <ul class="footer__links">
+                        <li><a href="#" class="footer__link">About Us</a></li>
+                        <li><a href="#" class="footer__link">Shipping</a></li>
+                        <li><a href="#" class="footer__link">Returns</a></li>
+                        <li><a href="#" class="footer__link">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer__title">Contact</h4>
+                    <ul class="footer__links">
+                        <li><a href="#" class="footer__link">Instagram</a></li>
+                        <li><a href="#" class="footer__link">KakaoTalk</a></li>
+                        <li><a href="#" class="footer__link">Email</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer__title">Legal</h4>
+                    <ul class="footer__links">
+                        <li><a href="#" class="footer__link">Privacy Policy</a></li>
+                        <li><a href="#" class="footer__link">Terms of Service</a></li>
+                        <li><a href="./admin.html" class="footer__link">Admin</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer__bottom">
+                <p>&copy; 2026 Vindt shop. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+        <a href="#" class="bottom-nav__item bottom-nav__item--active" data-page="home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span>Home</span>
+        </a>
+        <a href="#" class="bottom-nav__item" data-page="category">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            <span>Category</span>
+        </a>
+        <a href="#" class="bottom-nav__item" data-page="wishlist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span>Wishlist</span>
+        </a>
+        <a href="#" class="bottom-nav__item" data-page="mypage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>My Page</span>
+        </a>
+    </nav>
+
+    <!-- Product Detail Modal -->
+    <div class="modal-overlay">
+        <div class="modal"></div>
+    </div>
+
+    <!-- Cart Drawer -->
+    <div class="cart-drawer__backdrop"></div>
+    <aside class="cart-drawer">
+        <div class="cart-drawer__header">
+            <h3 class="cart-drawer__title">Shopping Cart</h3>
+            <button class="cart-drawer__close">&times;</button>
+        </div>
+        <div class="cart-drawer__items"></div>
+        <div class="cart-drawer__footer">
+            <div class="cart-drawer__total">
+                <span>Total</span>
+                <span class="cart-total">₩0</span>
+            </div>
+            <button class="checkout-btn">Checkout</button>
+        </div>
+    </aside>
+
+    <!-- Wishlist Drawer -->
+    <div class="wishlist-drawer__backdrop"></div>
+    <aside class="wishlist-drawer">
+        <div class="wishlist-drawer__header">
+            <h3 class="wishlist-drawer__title">Wishlist</h3>
+            <button class="wishlist-drawer__close">&times;</button>
+        </div>
+        <div class="wishlist-drawer__items"></div>
+    </aside>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay">
+        <div class="search-overlay__header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input type="text" class="search-overlay__input" placeholder="Search products...">
+            <button class="search-overlay__close">&times;</button>
+        </div>
+        <div class="search-overlay__results container"></div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="login-modal-overlay">
+        <div class="login-modal">
+            <button class="login-modal__close">&times;</button>
+            <h2 class="login-modal__title">Login</h2>
+            <form class="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="login-btn">Login</button>
+            </form>
+            <div class="login-divider"><span>or</span></div>
+            <button class="signup-btn">Create Account</button>
+
+            <!-- Social Login -->
+            <div class="social-login">
+                <div id="naverIdLogin"></div>
+                <button type="button" class="social-btn" aria-label="Naver Login" style="display:none;">
+                    <img src="./Logo/naver_logo.png" alt="Naver">
+                </button>
+                <button type="button" class="social-btn" aria-label="Kakao Login">
+                    <img src="./Logo/kakao_logo.png" alt="Kakao">
+                </button>
+                <button type="button" class="social-btn" aria-label="Google Login">
+                    <img src="./Logo/google_logo.png" alt="Google">
+                </button>
+            </div>
+
+            <div class="login-links">
+                <a href="#">Forgot Password?</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Page Modal -->
+    <div class="mypage-modal-overlay">
+        <div class="mypage-modal">
+            <button class="mypage-modal__close">&times;</button>
+            <h2 class="mypage-modal__title">My Page</h2>
+            <div class="order-status">
+                <h3>Order Status</h3>
+                <div class="order-status__grid">
+                    <div class="order-status__item">
+                        <span class="order-status__count">0</span>
+                        <span class="order-status__label">Pending</span>
+                    </div>
+                    <div class="order-status__item">
+                        <span class="order-status__count">0</span>
+                        <span class="order-status__label">Preparing</span>
+                    </div>
+                    <div class="order-status__item">
+                        <span class="order-status__count">0</span>
+                        <span class="order-status__label">Shipping</span>
+                    </div>
+                    <div class="order-status__item">
+                        <span class="order-status__count">0</span>
+                        <span class="order-status__label">Delivered</span>
+                    </div>
+                </div>
+            </div>
+            <ul class="mypage-menu">
+                <li><a href="#">Order History</a></li>
+                <li><a href="#">Wishlist <span class="wishlist-menu-count">0</span></a></li>
+                <li><a href="#">Coupons <span class="coupon-count">0</span></a></li>
+                <li><a href="#">Points <span class="points-count">0P</span></a></li>
+                <li><a href="#">Edit Profile</a></li>
+                <li><a href="#">Address Book</a></li>
+                <li style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <a href="#" class="logout-link" style="color: #e74c3c;">Log Out</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="checkout-modal-overlay">
+        <div class="checkout-modal">
+            <button class="checkout-modal__close">&times;</button>
+            <div class="checkout-modal__header">
+                <h2 class="checkout-modal__title">Checkout</h2>
+            </div>
+            <div class="checkout-modal__content">
+                <!-- Order Summary -->
+                <div class="checkout-section">
+                    <h3 class="checkout-section__title">Order Summary</h3>
+                    <div class="checkout-items"></div>
+                    <div class="checkout-totals">
+                        <div class="checkout-total-row">
+                            <span>Subtotal</span>
+                            <span class="checkout-subtotal">₩0</span>
+                        </div>
+                        <div class="checkout-total-row">
+                            <span>Shipping</span>
+                            <span class="checkout-shipping">₩3,000</span>
+                        </div>
+                        <div class="checkout-total-row checkout-total-row--final">
+                            <span>Total</span>
+                            <span class="checkout-final-total">₩3,000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Information -->
+                <div class="checkout-section">
+                    <h3 class="checkout-section__title">Shipping Information</h3>
+                    <form class="checkout-form">
+                        <div class="form-group">
+                            <label for="checkout-name">Full Name *</label>
+                            <input type="text" id="checkout-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkout-email">Email *</label>
+                            <input type="email" id="checkout-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkout-phone">Phone *</label>
+                            <input type="tel" id="checkout-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkout-address">Address *</label>
+                            <textarea id="checkout-address" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkout-notes">Order Notes (Optional)</label>
+                            <textarea id="checkout-notes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="checkout-section">
+                    <h3 class="checkout-section__title">Payment Method</h3>
+                    <div class="payment-methods">
+                        <label class="payment-method">
+                            <input type="radio" name="payment" value="card" checked>
+                            <span>💳 Credit/Debit Card</span>
+                        </label>
+                        <label class="payment-method">
+                            <input type="radio" name="payment" value="bank">
+                            <span>🏦 Bank Transfer</span>
+                        </label>
+                        <label class="payment-method">
+                            <input type="radio" name="payment" value="kakao">
+                            <span>💛 KakaoPay</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Place Order Button -->
+                <button class="place-order-btn">Place Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Confirmation Modal -->
+    <div class="order-confirmation-overlay">
+        <div class="order-confirmation">
+            <div class="order-confirmation__icon">✓</div>
+            <h2 class="order-confirmation__title">Order Placed Successfully!</h2>
+            <p class="order-confirmation__message">Thank you for your purchase. Your order number is <strong
+                    class="order-number">#12345</strong></p>
+            <p class="order-confirmation__info">We've sent a confirmation email with order details.</p>
+            <button class="order-confirmation__btn">Continue Shopping</button>
+        </div>
+    </div>
+
+    <!-- Board Modal (Notice/Review/Q&A) -->
+    <div class="board-modal-overlay">
+        <div class="board-modal">
+            <button class="board-modal__close">&times;</button>
+            <div class="board-modal__header">
+                <h2 class="board-modal__title">Notice</h2>
+            </div>
+            <div class="board-modal__content">
+                <!-- Board List View -->
+                <div class="board-list"></div>
+                <!-- Board Detail View -->
+                <div class="board-detail" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="translations.js"></script>
+    <script src="boards.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+<Master Vindt Shop Plan>
+
+1. The most important thing to Add (Also with the vintro style)
+>>> Image upload system for the staffs
+    Image uploading window should be like this
+    - Image upload button
+    - Name of the item 
+    - Tag(premium, 50% off, 25% off) to add
+    - Category(Outer, Top, Pants, Skirt, One piece, Shoes, Hat/Cap, Accessories, Homeware, Set) to select
+    >> Accessories category has three sub-class > 목도리, 안경, 목걸이, 팔찌, 귀걸이, 반지  
+    - Original price to add
+    - Discounted price to add
+    - Discounted rate to add

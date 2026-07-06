@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Vindt Shop - Admin</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --color-cream: #FDFAF5;
+            --color-cream-dark: #F5F1EA;
+            --color-dark: #1A1A1A;
+            --color-dark-light: #333333;
+            --color-grey: #888888;
+            --color-accent: #8B4513;
+        }
+
+        body {
+            background-color: var(--color-cream);
+            font-family: 'Inter', sans-serif;
+            color: var(--color-dark);
+        }
+
+        .admin-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .admin-card {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+            border: 1px solid var(--color-cream-dark);
+        }
+
+        .admin-title {
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 24px;
+            text-align: center;
+            color: var(--color-dark);
+        }
+
+        /* Login Form */
+        #login-section {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--color-dark);
+            color: var(--color-cream);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Dashboard */
+        #dashboard-section {
+            display: none;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .logout-btn,
+        .back-to-shop-btn {
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .back-to-shop-btn {
+            background: var(--color-dark);
+        }
+
+        .back-to-shop-btn:hover {
+            background: var(--color-accent);
+            transform: translateY(-1px);
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .preview-image {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            background: #eee;
+            border: 2px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .preview-image img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .accessory-options {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .product-list {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .product-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .product-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+
+        .product-item-info {
+            flex: 1;
+        }
+
+        .product-item-info strong {
+            display: block;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .product-item-info .product-meta {
+            font-size: 0.75em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-category {
+            background: #1a1a1a;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.7em;
+            text-transform: uppercase;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #e74c3c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background: #e74c3c;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Responsive Design Enhancements */
+        html,
+        body {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 768px) {
+            .admin-container {
+                margin: 20px auto;
+                padding: 15px;
+            }
+
+            .admin-card {
+                padding: 25px 20px;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            .upload-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px;
+            }
+
+            .product-list {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .preview-image {
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .admin-container {
+                margin: 15px auto;
+                padding: 10px;
+            }
+
+            .admin-card {
+                padding: 20px 15px;
+            }
+
+            #login-section {
+                margin: 50px auto;
+            }
+
+            .product-list {
+                grid-template-columns: 1fr;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .logout-btn,
+            .back-to-shop-btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .preview-image {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Login Section -->
+    <div id="login-section" class="admin-container">
+        <div class="admin-card">
+            <h2 class="admin-title">Admin Login</h2>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label>ID</label>
+                    <input type="text" id="admin-id" placeholder="Enter Admin ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="admin-pw" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="admin-container">
+        <div class="dashboard-header">
+            <h2 class="admin-title" style="margin:0;">Product Management</h2>
+            <div class="header-actions">
+                <a href="index.html" class="back-to-shop-btn">← Back to Shop</a>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <h3 style="margin-bottom:20px;">Upload New Product</h3>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label>Product Image</label>
+                    <div class="preview-image" id="image-preview">
+                        <span>Click to Select Image</span>
+                    </div>
+                    <input type="file" id="product-image" accept="image/*" style="display:none;" required>
+                </div>
+
+                <div class="upload-grid">
+                    <div class="form-group full-width">
+                        <label>Product Title</label>
+                        <input type="text" id="product-title" placeholder="Vintage Jacket..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="product-category" required>
+                            <option value="">Select Category</option>
+                            <option value="premium">Premium</option>
+                            <option value="outer">Outer</option>
+                            <option value="top">Top</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="dress">Dress</option>
+                            <option value="acc">Accessories</option>
+                        </select>
+                        <!-- Sub-categories for Accessories -->
+                        <div id="acc-sub-options" class="accessory-options">
+                            <label><input type="radio" name="acc-sub" value="scarf"> Scarf (목도리)</label><br>
+                            <label><input type="radio" name="acc-sub" value="glasses"> Glasses (안경)</label><br>
+                            <label><input type="radio" name="acc-sub" value="necklace"> Necklace (목걸이)</label><br>
+                            <label><input type="radio" name="acc-sub" value="bracelet"> Bracelet (팔찌)</label><br>
+                            <label><input type="radio" name="acc-sub" value="earring"> Earring (귀걸이)</label><br>
+                            <label><input type="radio" name="acc-sub" value="ring"> Ring (반지)</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Badge</label>
+                        <select id="product-badge">
+                            <option value="">None</option>
+                            <option value="premium">Premium</option>
+                            <option value="new">New</option>
+                            <option value="sale">Sale</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Price (₩)</label>
+                        <input type="number" id="product-price" placeholder="35000" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Original Price (Optional - for Sale)</label>
+                        <input type="number" id="product-original-price" placeholder="50000">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Description (Measurements)</label>
+                        <input type="text" id="product-desc" placeholder="Shoulder: 45cm, Chest: 50cm..." required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top:20px;">Upload Product</button>
+            </form>
+        </div>
+
+        <div class="admin-card">
+            <h3>Recently Added Products</h3>
+            <div id="product-list" class="product-list">
+                <!-- Javascript will populate this -->
+            </div>
+            <button id="clear-storage"
+                style="margin-top:20px; color:#999; background:none; border:none; cursor:pointer;">⚠️ Clear All Local
+                Products</button>
+        </div>
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+
+</html>
