@@ -8,6 +8,7 @@ if (window.location.protocol === 'file:') {
 
 // import { PRODUCTS as STATIC_PRODUCTS } from "./products.js"; // Removed static data dependency
 import { listenForProductUpdates } from "./firebase-client.js";
+import { paymentConfig } from "./config/paymentConfig.js";
 
 // STATE
 const safeParse = (key, fallback) => {
@@ -36,22 +37,27 @@ const state = {
     allProducts: [] // Was [...STATIC_PRODUCTS]
 };
 
-// Naver Login Initialization
-let naverLogin = null;
-try {
-    if (typeof naver !== 'undefined' && naver.LoginWithNaverId) {
-        naverLogin = new naver.LoginWithNaverId({
-            clientId: "jBybTIyTT9X5nDtmDfnV", // Public Client ID for frontend-only app
-            callbackUrl: "https://vindt-cloth.web.app/", // Callback URL
-            isPopup: false,
-            loginButton: { color: "green", type: 3, height: 45 }
-        });
+const getKakaoRedirectUri = () => paymentConfig.kakao.redirectUri;
+
+/**
+ * Cleans the URL by removing search parameters and hashes (OAuth tokens)
+ * without refreshing the page.
+ */
+function cleanUrl() {
+    if (window.history.replaceState) {
+        // This removes both query params (?...) and fragments (#...)
+        window.history.replaceState({}, document.title, window.location.pathname);
     } else {
-        console.warn("Naver Login SDK not loaded.");
+        // Fallback for older browsers
+        window.location.hash = "";
     }
-} catch (e) {
-    console.error("Naver Login initialization error:", e);
 }
+
+
+// Naver Login Placeholder
+let naverLogin = null;
+
+
 
 // DOM ELEMENTS
 const DOM = {};
@@ -199,6 +205,11 @@ function renderProductCard(product, showWishlist = true) {
         ? `<span class="product-card__price--original">${formatPrice(product.originalPrice)}</span>`
         : '';
 
+    // Stock Display
+    const stockDisplay = (product.stock !== undefined && product.stock !== null)
+        ? (product.stock > 0 ? `<span style="font-size:0.8rem; color:#666; margin-left:6px;">/ Left: ${product.stock}</span>` : '<span style="font-size:0.8rem; color:#e74c3c; margin-left:6px;">/ Sold Out</span>')
+        : '';
+
     const actionButtons = showWishlist ? `
             <div class="nd-area-btn">
                 <span class="wish" data-product-id="${product.id}" onclick="event.stopPropagation()">
@@ -224,8 +235,13 @@ function renderProductCard(product, showWishlist = true) {
                     <img src="${product.image}" alt="${product.title}" class="product-card__image" loading="lazy">
                 </div>
                 <div class="product-card__info">
+                    <span class="product-card__brand">${product.category}</span>
                     <h3 class="product-card__title">${product.title}</h3>
-                    <p class="product-card__price">${formatPrice(product.price)}${origPrice}</p>
+                    <div class="product-card__price-row">
+                        <span class="product-card__price">${formatPrice(product.price)}</span>
+                        ${origPrice}
+                        ${stockDisplay}
+                    </div>
                 </div>
             </article>
         `;
@@ -454,9 +470,23 @@ function attachProductClickHandlers() {
 
 function attachWishlistHandlers() {
     document.querySelectorAll('.nd-area-btn .wish').forEach(btn => {
+        const productId = btn.dataset.productId;
+        const product = state.allProducts.find(p => String(p.id) === String(productId));
+
+        // Add active class if already in wishlist
+        if (product && state.wishlist.some(w => String(w.id) === String(product.id))) {
+            btn.classList.add('active');
+        }
+
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            openLogin();
+            if (!state.user) {
+                openLogin();
+                return;
+            }
+            if (product) {
+                toggleWishlist(product);
+            }
         });
     });
 
@@ -497,9 +527,8 @@ function openCheckout() {
         alert('Your cart is empty!');
         return;
     }
-    renderCheckoutItems();
-    DOM.checkoutModalOverlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    // Redirect to the dedicated checkout page with NicePay integration
+    window.location.href = '/checkout.html';
 }
 function closeCheckout() { DOM.checkoutModalOverlay.classList.remove('active'); document.body.style.overflow = ''; }
 function renderCheckoutItems() {
@@ -704,13 +733,19 @@ function renderBoardDetail(boardType, id) {
 
 // LOGIN & USER FUNCTIONS
 function handleLoginSuccess(userProfile) {
+    console.log("Login success triggered with profile:", userProfile);
     state.user = {
         id: userProfile.id,
-        name: userProfile.name || userProfile.nickname || 'Naver User',
+        name: userProfile.name || userProfile.nickname || 'User',
         email: userProfile.email,
         image: userProfile.profile_image
     };
-    localStorage.setItem('vindteok_user', JSON.stringify(state.user));
+    try {
+        localStorage.setItem('vindteok_user', JSON.stringify(state.user));
+        console.log("User session saved to localStorage");
+    } catch (e) {
+        console.error("Failed to save user to localStorage", e);
+    }
     updateHeaderUser();
     closeLogin();
 }
@@ -772,75 +807,96 @@ function updateHeaderUser() {
 }
 
 // INT'L
-function t(key) {
-    if (typeof TRANSLATIONS !== 'undefined') {
-        const translations = TRANSLATIONS[state.currentLang] || TRANSLATIONS['ko'];
-        return translations[key] || key;
-    }
-    return key;
-}
+// INT'L functions delegated to TranslationManager (translations.js)
+// Logic removed to avoid duplication.
 
-function saveLang() { localStorage.setItem('vindteok_lang', state.currentLang); }
-
-function applyTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
-    if (DOM.searchInput) DOM.searchInput.placeholder = t('searchProducts');
-    if (DOM.sortSelect) {
-        DOM.sortSelect.innerHTML = `
-            <option value="newest">${t('newest')}</option>
-            <option value="price-low">${t('priceLow')}</option>
-            <option value="price-high">${t('priceHigh')}</option>
-            <option value="discount">${t('discount')}</option>
-        `;
-    }
-    const filterMapping = { all: 'all', premium: 'premium', outer: 'outer', top: 'top', bottom: 'bottom', dress: 'dress', acc: 'acc', sale: 'sale' };
-    DOM.filterTabs.forEach(tab => {
-        const key = tab.dataset.filter;
-        if (filterMapping[key]) tab.textContent = t(key);
-    });
-    document.querySelectorAll('.subcategory-tab').forEach(tab => {
-        const sub = tab.dataset.sub;
-        if (sub === 'all') tab.textContent = t('all');
-        else if (sub === 'man') tab.textContent = t('man');
-        else if (sub === 'woman') tab.textContent = t('woman');
-    });
-    document.querySelectorAll('.nav-overlay__link').forEach(link => {
-        const filter = link.dataset.filter;
-        if (filter && typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.currentLang][filter]) {
-            link.textContent = t(filter);
-        }
-    });
-}
-function initLanguage() {
-    const langBtn = document.querySelector('.lang-selector__btn');
-    const langCurrent = document.querySelector('.lang-selector__current');
-    const langOptions = document.querySelectorAll('.lang-option');
-    if (langCurrent && typeof LANGUAGE_NAMES !== 'undefined' && LANGUAGE_NAMES[state.currentLang]) {
-        langCurrent.textContent = LANGUAGE_NAMES[state.currentLang];
-    }
-    langOptions.forEach(opt => { opt.classList.toggle('active', opt.dataset.lang === state.currentLang); });
-    langOptions.forEach(opt => {
-        opt.addEventListener('click', () => {
-            state.currentLang = opt.dataset.lang;
-            saveLang();
-            if (langCurrent) langCurrent.textContent = LANGUAGE_NAMES[state.currentLang];
-            langOptions.forEach(o => o.classList.toggle('active', o.dataset.lang === state.currentLang));
-            applyTranslations();
-            renderCart();
-            renderWishlist();
-            renderRecentlyViewed();
-        });
-    });
-    applyTranslations();
-}
 
 // INIT
 async function init() {
     console.log("App initializing...");
     // 1. Initialize State & DOM
+    // 1. Initialize State & DOM
     cacheDom();
-    initLanguage();
-    applyTranslations();
+    if (window.TranslationManager) {
+        window.TranslationManager.init();
+        // Sync local state
+        state.currentLang = window.TranslationManager.currentLang;
+    }
+
+    // --- Kakao Login Initialization ---
+    try {
+        if (typeof Kakao !== 'undefined') {
+            if (!Kakao.isInitialized()) {
+                Kakao.init(paymentConfig.kakao.jsKey);
+            }
+            const kakaoBtn = document.getElementById('kakao-login-btn');
+            if (kakaoBtn) {
+                kakaoBtn.onclick = () => Kakao.Auth.authorize({ redirectUri: getKakaoRedirectUri() });
+            }
+        }
+    } catch (e) {
+        console.error("Kakao initialization failed:", e);
+    }
+
+    // --- Naver Login Initialization ---
+    try {
+        if (typeof naver !== 'undefined' && naver.LoginWithNaverId) {
+            console.log("Initializing Naver Login SDK...");
+            naverLogin = new naver.LoginWithNaverId({
+                clientId: "jBybTIyTT9X5nDtmDfnV",
+                callbackUrl: window.location.origin + "/",
+                isPopup: false,
+                loginButton: { color: "green", type: 3, height: 45 }
+            });
+            naverLogin.init();
+
+            // Handle Naver Callback
+            naverLogin.getLoginStatus(function (status) {
+                console.log("Naver login status check:", status);
+                if (status) {
+                    const userProfile = {
+                        id: naverLogin.user.getId(),
+                        name: naverLogin.user.getName() || naverLogin.user.getNickName() || 'Naver User',
+                        email: naverLogin.user.getEmail(),
+                        profile_image: naverLogin.user.getProfileImage()
+                    };
+                    console.log("Naver login success! User:", userProfile.name);
+                    handleLoginSuccess(userProfile);
+                    cleanUrl();
+                } else {
+                    const hash = window.location.hash;
+                    if (hash.includes('access_token=')) {
+                        console.warn("Found access_token in hash but SDK status is false. Possible state mismatch.");
+                        // Clean URL anyway to avoid dangling tokens
+                        cleanUrl();
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Naver initialization failed:", e);
+    }
+
+    // --- Kakao Backend Callback Handling ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginToken = urlParams.get('login_token');
+    const loginError = urlParams.get('error');
+
+    if (loginToken) {
+        (async () => {
+            try {
+                const resp = await fetch(`/api/login-token/${loginToken}`);
+                if (resp.ok) {
+                    handleLoginSuccess(await resp.json());
+                }
+            } catch (e) { console.error('Kakao login data error', e); }
+            cleanUrl();
+        })();
+    } else if (loginError) {
+        console.error('Kakao error:', loginError);
+        cleanUrl();
+    }
+
     renderProducts();
     updateCartCount();
     updateWishlistCount();
@@ -883,14 +939,8 @@ async function init() {
         });
     }
 
-    // Login icon - always set up the initial handler
-    // updateHeaderUser() will override this with .onclick if user is logged in
-    if (DOM.loginIcon && !state.user) {
-        DOM.loginIcon.addEventListener('click', function () {
-            console.log("Login clicked!");
-            openLogin();
-        });
-    }
+    // Login icon handler is managed entirely by updateHeaderUser()
+    // which uses .onclick to set the correct handler for logged-in/logged-out state.
 
     // Initialize login button based on user state
     updateHeaderUser();
@@ -912,9 +962,14 @@ async function init() {
     document.querySelectorAll('.lang-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const lang = opt.dataset.lang;
-            state.currentLang = lang;
-            localStorage.setItem('vindteok_lang', lang);
-            location.reload();
+            if (window.TranslationManager) {
+                window.TranslationManager.changeLanguage(lang);
+                state.currentLang = lang;
+                // Re-render components that might need it (though TranslationManager handles DOM text)
+                renderCart();
+                renderWishlist();
+                renderRecentlyViewed();
+            }
         });
     });
 

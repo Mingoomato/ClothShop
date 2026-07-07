@@ -7,6 +7,10 @@
         content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="description" content="Vindt shop - Premium Vintage Clothing Shop">
     <title>Vindt shop - Premium Vintage</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +24,8 @@
 
     <!-- Naver Login SDK -->
     <script src="https://static.nid.naver.com/js/naveridlogin_js_sdk_2.0.2.js" charset="utf-8"></script>
+    <!-- Kakao Login SDK -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.6.0/kakao.min.js" crossorigin="anonymous"></script>
     <script>
         if (window.location.protocol === 'file:') {
             alert('CRITICAL ERROR: This app cannot run directly from the file system due to browser security restrictions (CORS).\n\nPlease use a local server.\n\nVS Code: Right-click index.html > "Open with Live Server"\nTerminal: npx serve');
@@ -325,14 +331,12 @@
             <!-- Social Login -->
             <div class="social-login">
                 <div id="naverIdLogin"></div>
-                <button type="button" class="social-btn" aria-label="Naver Login" style="display:none;">
-                    <img src="./Logo/naver_logo.png" alt="Naver">
-                </button>
-                <button type="button" class="social-btn" aria-label="Kakao Login">
-                    <img src="./Logo/kakao_logo.png" alt="Kakao">
-                </button>
-                <button type="button" class="social-btn" aria-label="Google Login">
-                    <img src="./Logo/google_logo.png" alt="Google">
+                <button id="kakao-login-btn" class="btn-social btn-kakao">
+                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px; margin-right: 8px;">
+                        <path
+                            d="M12 3C5.925 3 1 6.925 1 11.775c0 3.325 2.5 6.2 6.175 7.65-.25 1.05-.9 3.75-.925 3.95-.05.3.1.375.325.225.2-.15 2.925-2.225 3.975-3.05.5.075 1.025.125 1.55.125 6.075 0 11-3.925 11-8.775C23 6.925 18.075 3 12 3z" />
+                    </svg>
+                    Login with Kakao
                 </button>
             </div>
 
