@@ -877,19 +877,40 @@ async function init() {
         console.error("Naver initialization failed:", e);
     }
 
-    // --- Kakao Backend Callback Handling ---
+    // --- Kakao Login Callback Handling (client-side authorization code flow) ---
     const urlParams = new URLSearchParams(window.location.search);
-    const loginToken = urlParams.get('login_token');
+    const kakaoCode = urlParams.get('code');
     const loginError = urlParams.get('error');
 
-    if (loginToken) {
+    if (kakaoCode) {
         (async () => {
             try {
-                const resp = await fetch(`/api/login-token/${loginToken}`);
-                if (resp.ok) {
-                    handleLoginSuccess(await resp.json());
+                const tokenResp = await fetch('https://kauth.kakao.com/oauth/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: paymentConfig.kakao.jsKey,
+                        redirect_uri: getKakaoRedirectUri(),
+                        code: kakaoCode
+                    })
+                });
+                const tokenData = await tokenResp.json();
+                if (tokenData.access_token) {
+                    Kakao.Auth.setAccessToken(tokenData.access_token);
+                    const me = await Kakao.API.request({ url: '/v2/user/me' });
+                    const acc = me.kakao_account || {};
+                    const prof = acc.profile || {};
+                    handleLoginSuccess({
+                        id: 'kakao_' + me.id,
+                        nickname: prof.nickname,
+                        email: acc.email,
+                        profile_image: prof.profile_image_url || prof.thumbnail_image_url
+                    });
+                } else {
+                    console.error('Kakao token exchange failed:', tokenData);
                 }
-            } catch (e) { console.error('Kakao login data error', e); }
+            } catch (e) { console.error('Kakao login error', e); }
             cleanUrl();
         })();
     } else if (loginError) {
