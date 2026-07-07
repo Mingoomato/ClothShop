@@ -762,6 +762,21 @@ function handleLogout() {
         localStorage.removeItem('vindteok_wishlist');
         localStorage.removeItem('vindteok_recent');
 
+        // Invalidate the Kakao session so the next login asks for the account again
+        const kakaoToken = localStorage.getItem('vindteok_kakao_token');
+        localStorage.removeItem('vindteok_kakao_token');
+        localStorage.setItem('vindteok_force_login', '1');
+        if (kakaoToken && typeof Kakao !== 'undefined') {
+            try {
+                Kakao.Auth.setAccessToken(kakaoToken);
+                Kakao.API.request({ url: '/v1/user/logout' })
+                    .catch(err => console.warn('Kakao logout warning:', err));
+                Kakao.Auth.setAccessToken(null);
+            } catch (innerE) {
+                console.warn("Kakao SDK logout warning:", innerE);
+            }
+        }
+
         // Force Naver logout if object exists
         if (naverLogin) {
             try {
@@ -831,7 +846,14 @@ async function init() {
             }
             const kakaoBtn = document.getElementById('kakao-login-btn');
             if (kakaoBtn) {
-                kakaoBtn.onclick = () => Kakao.Auth.authorize({ redirectUri: getKakaoRedirectUri() });
+                kakaoBtn.onclick = () => {
+                    const params = { redirectUri: getKakaoRedirectUri() };
+                    // After an explicit logout, force the account prompt instead of silent SSO re-login
+                    if (localStorage.getItem('vindteok_force_login') === '1') {
+                        params.prompt = 'login';
+                    }
+                    Kakao.Auth.authorize(params);
+                };
             }
         }
     } catch (e) {
@@ -898,6 +920,8 @@ async function init() {
                 const tokenData = await tokenResp.json();
                 if (tokenData.access_token) {
                     Kakao.Auth.setAccessToken(tokenData.access_token);
+                    localStorage.setItem('vindteok_kakao_token', tokenData.access_token);
+                    localStorage.removeItem('vindteok_force_login');
                     const me = await Kakao.API.request({ url: '/v2/user/me' });
                     const acc = me.kakao_account || {};
                     const prof = acc.profile || {};
