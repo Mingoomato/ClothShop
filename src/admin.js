@@ -4,16 +4,12 @@
  */
 
 import { db, storage } from "./firebase-config.js";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, serverTimestamp, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// 1. CONFIGURATION
-const ADMIN_CONFIG = {
-    // SHA-256 hash of the admin password (set your own before deploying)
-    PASSWORD_HASH: 'REPLACE_WITH_SHA256_HASH_OF_YOUR_ADMIN_PASSWORD',
-    ADMIN_ID: 'REPLACE_WITH_YOUR_ADMIN_ID',
-    SESSION_KEY: 'vindteok_admin_session'
-};
+// 1. AUTH (Firebase Authentication — admin access is enforced by security rules)
+const auth = getAuth();
 
 // 2. DOM ELEMENTS
 const DOM = {
@@ -23,54 +19,53 @@ const DOM = {
     inputId: document.getElementById('admin-id'),
     inputPw: document.getElementById('admin-pw'),
     logoutBtn: document.getElementById('logout-btn'),
+    // Upload Form
     uploadForm: document.getElementById('upload-form'),
     imagePreview: document.getElementById('image-preview'),
     productImage: document.getElementById('product-image'),
-    productList: document.getElementById('product-list'),
-    clearBtn: document.getElementById('clear-storage'), // Not used for Firestore clear all (too dangerous)
     categorySelect: document.getElementById('product-category'),
-    accOptions: document.getElementById('acc-sub-options')
+    accOptions: document.getElementById('acc-sub-options'),
+    // Edit Form
+    editCard: document.getElementById('edit-product-card'),
+    editForm: document.getElementById('edit-form'),
+    editImagePreview: document.getElementById('edit-image-preview'),
+    editPreviewImgTag: document.getElementById('edit-preview-img-tag'),
+    editProductImage: document.getElementById('edit-product-image'),
+    editCategorySelect: document.getElementById('edit-product-category'),
+    editAccOptions: document.getElementById('edit-acc-sub-options'),
+    cancelEditBtn: document.getElementById('cancel-edit-btn'),
+    // List
+    productList: document.getElementById('product-list'),
+    clearBtn: document.getElementById('clear-storage') // Not used for Firestore clear all (too dangerous)
 };
 
-// 3. AUTHENTICATION (Same logic)
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
+// 3. AUTHENTICATION (Firebase Auth)
 async function handleLogin(e) {
     e.preventDefault();
-    const id = DOM.inputId.value;
+    const email = DOM.inputId.value.trim();
     const pw = DOM.inputPw.value;
 
-    if (id !== ADMIN_CONFIG.ADMIN_ID) {
-        alert('Invalid ID');
-        return;
-    }
-
-    const hashedPw = await hashPassword(pw);
-    if (hashedPw === ADMIN_CONFIG.PASSWORD_HASH) {
-        sessionStorage.setItem(ADMIN_CONFIG.SESSION_KEY, 'true');
-        showDashboard();
-    } else {
-        alert('Invalid Password');
+    try {
+        await signInWithEmailAndPassword(auth, email, pw);
+        // onAuthStateChanged will show the dashboard
+    } catch (err) {
+        console.error("Login failed:", err.code);
+        alert('Invalid email or password');
     }
 }
 
 function checkSession() {
-    if (sessionStorage.getItem(ADMIN_CONFIG.SESSION_KEY) === 'true') {
-        showDashboard();
-    } else {
-        showLogin();
-    }
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            showDashboard();
+        } else {
+            showLogin();
+        }
+    });
 }
 
 function handleLogout() {
-    sessionStorage.removeItem(ADMIN_CONFIG.SESSION_KEY);
-    showLogin();
+    signOut(auth);
 }
 
 function showDashboard() {
@@ -89,7 +84,9 @@ function showLogin() {
 
 // 4. PRODUCT MANAGEMENT (FIREBASE)
 let selectedFile = null;
+let editSelectedFile = null;
 
+// --- UPLOAD FORM LISTENERS ---
 DOM.imagePreview.addEventListener('click', () => DOM.productImage.click());
 DOM.productImage.addEventListener('change', function (e) {
     const file = e.target.files[0];
@@ -113,7 +110,7 @@ DOM.categorySelect.addEventListener('change', function () {
 
 DOM.uploadForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-    console.log("Upload form submitted"); // DEBUG
+    console.log("Upload form submitted");
 
     if (!selectedFile) {
         alert('Please select an image');
@@ -123,12 +120,12 @@ DOM.uploadForm.addEventListener('submit', async function (e) {
     const title = document.getElementById('product-title').value;
     const category = document.getElementById('product-category').value;
     const price = parseInt(document.getElementById('product-price').value);
+    const stockVal = document.getElementById('product-stock').value;
+    const stock = stockVal ? parseInt(stockVal) : 0;
     const originalPriceVal = document.getElementById('product-original-price').value;
     const originalPrice = originalPriceVal ? parseInt(originalPriceVal) : null;
     const desc = document.getElementById('product-desc').value;
     const badge = document.getElementById('product-badge').value;
-
-    console.log("Form Data:", { title, category, price, desc, badge, file: selectedFile.name }); // DEBUG
 
     let subCategory = null;
     if (category === 'acc') {
@@ -137,33 +134,19 @@ DOM.uploadForm.addEventListener('submit', async function (e) {
     }
 
     try {
-        console.log("Starting Firebase Storage upload...");
-        console.log("Storage bucket:", storage.app.options.storageBucket);
-        console.log("File size:", selectedFile.size, "bytes");
+        console.log("Starting upload...");
 
-        // 1. Upload Image to Firebase Storage with timeout
+        // 1. Upload Image
         const storageRef = ref(storage, `product-images/${Date.now()}_${selectedFile.name}`);
-        console.log("Storage reference created:", storageRef.fullPath);
-
-        console.log("Uploading bytes...");
-        const uploadPromise = uploadBytes(storageRef, selectedFile);
-
-        // Add 30 second timeout
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Upload timeout after 30 seconds - check Firebase Storage rules!')), 30000)
-        );
-
-        const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
-        console.log("✅ Storage upload complete. Ref:", snapshot.ref);
-
+        const snapshot = await uploadBytes(storageRef, selectedFile);
         const imageUrl = await getDownloadURL(snapshot.ref);
-        console.log("✅ Image URL retrieved:", imageUrl);
 
-        // 2. Add Document to Firestore
+        // 2. Create Document
         const newProduct = {
             title: title,
             price: price,
             originalPrice: originalPrice,
+            stock: stock, // NEW
             image: imageUrl,
             category: category,
             subCategory: subCategory,
@@ -172,29 +155,113 @@ DOM.uploadForm.addEventListener('submit', async function (e) {
             isNew: badge === 'new',
             soldOut: false,
             measurements: { info: desc },
-            timestamp: serverTimestamp() // For sorting
+            timestamp: serverTimestamp()
         };
 
-        console.log("Adding document to Firestore...", newProduct); // DEBUG
-        const docRef = await addDoc(collection(db, "products"), newProduct);
-        console.log("Document written with ID: ", docRef.id);
+        await addDoc(collection(db, "products"), newProduct);
 
         alert('Product Uploaded Successfully!');
         this.reset();
         DOM.imagePreview.innerHTML = '<span>Click to Select Image</span>';
         selectedFile = null;
         DOM.accOptions.style.display = 'none';
-
-        loadProducts(); // Refresh list
+        loadProducts();
 
     } catch (e) {
         console.error("Error adding product: ", e);
-        console.error("Error code:", e.code); // Log error code if available
-        console.error("Error message:", e.message);
         alert("Error uploading product: " + e.message);
     }
 });
 
+// --- EDIT FORM LISTENERS ---
+DOM.editImagePreview.addEventListener('click', () => DOM.editProductImage.click());
+DOM.editProductImage.addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    editSelectedFile = file;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        DOM.editPreviewImgTag.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+DOM.editCategorySelect.addEventListener('change', function () {
+    if (this.value === 'acc') {
+        DOM.editAccOptions.style.display = 'block';
+    } else {
+        DOM.editAccOptions.style.display = 'none';
+    }
+});
+
+DOM.cancelEditBtn.addEventListener('click', function () {
+    DOM.editCard.style.display = 'none';
+    DOM.editForm.reset();
+    editSelectedFile = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+DOM.editForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const docId = document.getElementById('edit-product-id').value;
+    if (!docId) return;
+
+    const title = document.getElementById('edit-product-title').value;
+    const category = document.getElementById('edit-product-category').value;
+    const price = parseInt(document.getElementById('edit-product-price').value);
+    const stock = parseInt(document.getElementById('edit-product-stock').value) || 0;
+    const originalPriceVal = document.getElementById('edit-product-original-price').value;
+    const originalPrice = originalPriceVal ? parseInt(originalPriceVal) : null;
+    const desc = document.getElementById('edit-product-desc').value;
+    const badge = document.getElementById('edit-product-badge').value;
+
+    let subCategory = null;
+    if (category === 'acc') {
+        const checkedSub = document.querySelector('input[name="edit-acc-sub"]:checked');
+        if (checkedSub) subCategory = checkedSub.value;
+    }
+
+    try {
+        let imageUrl = DOM.editPreviewImgTag.src;
+
+        // If new file selected, upload it
+        if (editSelectedFile) {
+            const storageRef = ref(storage, `product-images/${Date.now()}_${editSelectedFile.name}`);
+            const snapshot = await uploadBytes(storageRef, editSelectedFile);
+            imageUrl = await getDownloadURL(snapshot.ref);
+        }
+
+        const updatedData = {
+            title: title,
+            price: price,
+            originalPrice: originalPrice,
+            stock: stock,
+            image: imageUrl,
+            category: category,
+            subCategory: subCategory,
+            description: desc,
+            badge: badge === 'none' ? null : badge,
+            isNew: badge === 'new',
+            measurements: { info: desc }
+        };
+
+        await updateDoc(doc(db, "products", docId), updatedData);
+
+        alert('Product Updated!');
+        DOM.editCard.style.display = 'none';
+        DOM.editForm.reset();
+        editSelectedFile = null;
+        loadProducts();
+
+    } catch (e) {
+        console.error("Error updating product: ", e);
+        alert("Error updating product: " + e.message);
+    }
+});
+
+
+// --- PRODUCT LIST & INLINE ACTIONS ---
 async function loadProducts() {
     DOM.productList.innerHTML = '<p>Loading...</p>';
     try {
@@ -217,16 +284,54 @@ async function loadProducts() {
                         <span class="product-category">${p.category}</span>
                         <span>₩${p.price.toLocaleString()}</span>
                     </div>
+                    <div class="product-stock-admin">
+                        <span>Stock:</span>
+                        <input type="number" class="stock-input" data-id="${doc.id}" value="${p.stock ?? 0}" min="0">
+                        <button type="button" class="stock-save-btn" data-id="${doc.id}">Save</button>
+                    </div>
                 </div>
+                <span class="edit-btn" data-id="${doc.id}" title="Edit product">✎</span>
                 <span class="delete-btn" data-id="${doc.id}" data-img-url="${p.image}" title="Delete product">&times;</span>
             </div>
             `;
         }).join('');
 
-        // Attach delete listeners
+        // Attach listeners
+        // 1. Delete
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', function () {
                 deleteProduct(this.dataset.id, this.dataset.imgUrl);
+            });
+        });
+
+        // 2. Edit
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const docId = this.dataset.id;
+                await openEditForm(docId);
+            });
+        });
+
+        // 3. Inline Stock Save
+        document.querySelectorAll('.stock-save-btn').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const docId = this.dataset.id;
+                const input = document.querySelector(`.stock-input[data-id="${docId}"]`);
+                const newStock = parseInt(input.value) || 0;
+
+                try {
+                    await updateDoc(doc(db, "products", docId), { stock: newStock });
+                    // Optional: Visual feedback
+                    const originalText = this.innerText;
+                    this.innerText = "OK";
+                    this.style.background = "#3498db";
+                    setTimeout(() => {
+                        this.innerText = originalText;
+                        this.style.background = ""; // Reset
+                    }, 1000);
+                } catch (e) {
+                    alert("Failed to update stock: " + e.message);
+                }
             });
         });
 
@@ -236,22 +341,62 @@ async function loadProducts() {
     }
 }
 
+async function openEditForm(docId) {
+    try {
+        const docSnap = await getDoc(doc(db, "products", docId));
+        if (!docSnap.exists()) {
+            alert("Product not found!");
+            return;
+        }
+        const p = docSnap.data();
+
+        // Populate fields
+        document.getElementById('edit-product-id').value = docId;
+        document.getElementById('edit-product-title').value = p.title || '';
+        document.getElementById('edit-product-category').value = p.category || '';
+        document.getElementById('edit-product-price').value = p.price || '';
+        document.getElementById('edit-product-stock').value = p.stock ?? 0;
+        document.getElementById('edit-product-original-price').value = p.originalPrice || '';
+        document.getElementById('edit-product-desc').value = p.description || (p.measurements ? p.measurements.info : '') || '';
+        document.getElementById('edit-product-badge').value = p.badge || (p.isNew ? 'new' : 'none') || '';
+
+        // Handle subcategory radio
+        if (p.category === 'acc') {
+            DOM.editAccOptions.style.display = 'block';
+            if (p.subCategory) {
+                const radio = document.querySelector(`input[name="edit-acc-sub"][value="${p.subCategory}"]`);
+                if (radio) radio.checked = true;
+            }
+        } else {
+            DOM.editAccOptions.style.display = 'none';
+        }
+
+        // Image
+        DOM.editPreviewImgTag.src = p.image;
+        editSelectedFile = null; // Reset any previous file selection
+        document.getElementById('edit-product-image').value = ''; // Reset file input
+
+        // Show form
+        DOM.editCard.style.display = 'block';
+        DOM.editCard.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (e) {
+        console.error("Error opening edit form:", e);
+        alert("Error loading product details.");
+    }
+}
+
+
 async function deleteProduct(docId, imageUrl) {
     if (!confirm('Delete this product permanently?')) return;
 
     try {
-        // 1. Delete Firestore Document
         await deleteDoc(doc(db, "products", docId));
-
-        // 2. Delete Image from Storage (optional but good practice)
+        // Image delete is optional/unsafe in MVP often, but kept logic
         if (imageUrl) {
-            // Need to extract path from URL or just delete doc if safety rules ignore it. 
-            // Parsing URL to ref is tricky without full path logic, but let's try strict ref if possible.
-            // For simplicity in MVP, we might skip image delete or try:
             const imageRef = ref(storage, imageUrl);
             await deleteObject(imageRef).catch(err => console.log("Image delete error (might be okay if already gone):", err));
         }
-
         loadProducts();
     } catch (e) {
         console.error("Error deleting product: ", e);

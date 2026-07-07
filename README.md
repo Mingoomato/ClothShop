@@ -43,6 +43,12 @@ vindt-shop/
 └── .firebaserc             # Firebase 프로젝트 설정
 ```
 
+## 🔐 보안 아키텍처
+
+- **관리자 인증**: Firebase Authentication(이메일/비밀번호) 기반. 클라이언트에 자격증명을 두지 않습니다.
+- **Firestore 규칙**(`firestore.rules`): `products` 컬렉션은 누구나 읽기 가능, 쓰기는 관리자 계정만 허용. 그 외 경로는 전부 차단.
+- **Storage 규칙**(`storage.rules`): `product-images/`는 공개 읽기, 업로드·삭제는 관리자만.
+
 ## ⚙️ Firebase 설정
 
 `src/firebase-config.js`는 저장소에 포함되어 있지 않습니다.

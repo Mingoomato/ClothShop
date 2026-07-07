@@ -6,6 +6,10 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Vindt Shop - Admin</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;600&display=swap"
         rel="stylesheet">
@@ -351,6 +355,62 @@
                 height: 200px;
             }
         }
+
+        /* Stock Management Styles */
+        .product-stock-admin {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+
+        .product-stock-admin input {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .stock-save-btn {
+            padding: 4px 8px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .stock-save-btn:hover {
+            background: #27ae60;
+        }
+
+        .edit-btn {
+            position: absolute;
+            top: 8px;
+            right: 40px;
+            /* Position to the left of delete btn */
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            /* Slightly smaller icon */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .edit-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -362,8 +422,8 @@
             <h2 class="admin-title">Admin Login</h2>
             <form id="admin-login-form">
                 <div class="form-group">
-                    <label>ID</label>
-                    <input type="text" id="admin-id" placeholder="Enter Admin ID" required>
+                    <label>Email</label>
+                    <input type="email" id="admin-id" placeholder="Enter Admin Email" required>
                 </div>
                 <div class="form-group">
                     <label>Password</label>
@@ -439,6 +499,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Left Stock (Quantity)</label>
+                        <input type="number" id="product-stock" placeholder="1" required>
+                    </div>
+
+                    <div class="form-group">
                         <label>Original Price (Optional - for Sale)</label>
                         <input type="number" id="product-original-price" placeholder="50000">
                     </div>
@@ -450,6 +515,90 @@
                 </div>
 
                 <button type="submit" class="btn-primary" style="margin-top:20px;">Upload Product</button>
+            </form>
+        </div>
+
+        <!-- Edit Product Card -->
+        <div class="admin-card" id="edit-product-card" style="display:none;">
+            <h3 style="margin-bottom:20px;">Edit Product</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-product-id">
+
+                <div class="form-group">
+                    <label>Current Image</label>
+                    <div class="preview-image" id="edit-image-preview" style="cursor: pointer;">
+                        <img id="edit-preview-img-tag" src="" alt="Current Image">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Change Image (Optional)</label>
+                    <input type="file" id="edit-product-image" accept="image/*">
+                </div>
+
+                <div class="upload-grid">
+                    <div class="form-group full-width">
+                        <label>Product Title</label>
+                        <input type="text" id="edit-product-title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="edit-product-category" required>
+                            <option value="">Select Category</option>
+                            <option value="premium">Premium</option>
+                            <option value="outer">Outer</option>
+                            <option value="top">Top</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="dress">Dress</option>
+                            <option value="acc">Accessories</option>
+                        </select>
+                        <!-- Sub-categories for Accessories -->
+                        <div id="edit-acc-sub-options" class="accessory-options">
+                            <label><input type="radio" name="edit-acc-sub" value="scarf"> Scarf (목도리)</label><br>
+                            <label><input type="radio" name="edit-acc-sub" value="glasses"> Glasses (안경)</label><br>
+                            <label><input type="radio" name="edit-acc-sub" value="necklace"> Necklace (목걸이)</label><br>
+                            <label><input type="radio" name="edit-acc-sub" value="bracelet"> Bracelet (팔찌)</label><br>
+                            <label><input type="radio" name="edit-acc-sub" value="earring"> Earring (귀걸이)</label><br>
+                            <label><input type="radio" name="edit-acc-sub" value="ring"> Ring (반지)</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Badge</label>
+                        <select id="edit-product-badge">
+                            <option value="">None</option>
+                            <option value="premium">Premium</option>
+                            <option value="new">New</option>
+                            <option value="sale">Sale</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Price (₩)</label>
+                        <input type="number" id="edit-product-price" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Left Stock</label>
+                        <input type="number" id="edit-product-stock" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Original Price</label>
+                        <input type="number" id="edit-product-original-price">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Description (Measurements)</label>
+                        <input type="text" id="edit-product-desc" required>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button type="submit" class="btn-primary" style="flex:2;">Update Product</button>
+                    <button type="button" id="cancel-edit-btn" class="btn-primary"
+                        style="flex:1; background:#999;">Cancel</button>
+                </div>
             </form>
         </div>
 
