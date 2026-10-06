@@ -11,6 +11,27 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 // 1. AUTH (Firebase Authentication — admin access is enforced by security rules)
 const auth = getAuth();
 
+const HTML_ESCAPE_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+};
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => HTML_ESCAPE_MAP[character]);
+}
+
+function safeImageUrl(value) {
+    try {
+        const url = new URL(String(value ?? ''), window.location.origin);
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch {
+        return '';
+    }
+}
+
 // 2. DOM ELEMENTS
 const DOM = {
     loginSection: document.getElementById('login-section'),
@@ -55,10 +76,24 @@ async function handleLogin(e) {
 }
 
 function checkSession() {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            showDashboard();
-        } else {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            showLogin();
+            return;
+        }
+
+        try {
+            const tokenResult = await user.getIdTokenResult();
+            if (tokenResult.claims.admin === true) {
+                showDashboard();
+            } else {
+                await signOut(auth);
+                alert('This account is not authorized for the admin panel.');
+                showLogin();
+            }
+        } catch (error) {
+            console.error('Admin claim check failed:', error);
+            await signOut(auth);
             showLogin();
         }
     });
@@ -110,7 +145,6 @@ DOM.categorySelect.addEventListener('change', function () {
 
 DOM.uploadForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-    console.log("Upload form submitted");
 
     if (!selectedFile) {
         alert('Please select an image');
@@ -134,8 +168,6 @@ DOM.uploadForm.addEventListener('submit', async function (e) {
     }
 
     try {
-        console.log("Starting upload...");
-
         // 1. Upload Image
         const storageRef = ref(storage, `product-images/${Date.now()}_${selectedFile.name}`);
         const snapshot = await uploadBytes(storageRef, selectedFile);
@@ -277,21 +309,21 @@ async function loadProducts() {
             const p = doc.data();
             return `
             <div class="product-item">
-                <img src="${p.image}" alt="${p.title}">
+                <img src="${escapeHtml(safeImageUrl(p.image))}" alt="${escapeHtml(p.title)}">
                 <div class="product-item-info">
-                    <strong title="${p.title}">${p.title}</strong>
+                    <strong title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</strong>
                     <div class="product-meta">
-                        <span class="product-category">${p.category}</span>
-                        <span>₩${p.price.toLocaleString()}</span>
+                        <span class="product-category">${escapeHtml(p.category)}</span>
+                        <span>₩${Number(p.price || 0).toLocaleString()}</span>
                     </div>
                     <div class="product-stock-admin">
                         <span>Stock:</span>
-                        <input type="number" class="stock-input" data-id="${doc.id}" value="${p.stock ?? 0}" min="0">
-                        <button type="button" class="stock-save-btn" data-id="${doc.id}">Save</button>
+                        <input type="number" class="stock-input" data-id="${escapeHtml(doc.id)}" value="${escapeHtml(p.stock ?? 0)}" min="0">
+                        <button type="button" class="stock-save-btn" data-id="${escapeHtml(doc.id)}">Save</button>
                     </div>
                 </div>
-                <span class="edit-btn" data-id="${doc.id}" title="Edit product">✎</span>
-                <span class="delete-btn" data-id="${doc.id}" data-img-url="${p.image}" title="Delete product">&times;</span>
+                <span class="edit-btn" data-id="${escapeHtml(doc.id)}" title="Edit product">✎</span>
+                <span class="delete-btn" data-id="${escapeHtml(doc.id)}" data-img-url="${escapeHtml(safeImageUrl(p.image))}" title="Delete product">&times;</span>
             </div>
             `;
         }).join('');
@@ -395,7 +427,7 @@ async function deleteProduct(docId, imageUrl) {
         // Image delete is optional/unsafe in MVP often, but kept logic
         if (imageUrl) {
             const imageRef = ref(storage, imageUrl);
-            await deleteObject(imageRef).catch(err => console.log("Image delete error (might be okay if already gone):", err));
+            await deleteObject(imageRef).catch(err => console.warn("Image delete warning:", err));
         }
         loadProducts();
     } catch (e) {

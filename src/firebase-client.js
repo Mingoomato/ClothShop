@@ -38,7 +38,6 @@ export function listenForProductUpdates(callback) {
                 ...data
             };
         });
-        console.log(`🔄 Product update received from Firebase: ${products.length} products`);
         callback(products);
     }, (error) => {
         console.error("Error listening for products:", error);

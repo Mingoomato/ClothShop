@@ -9,7 +9,7 @@
 - **Frontend**: Vanilla JavaScript (ES Modules), HTML5, CSS3
 - **Backend / DB**: Firebase Firestore, Firebase Storage
 - **Hosting**: Firebase Hosting
-- **인증**: Naver / Kakao / Google 소셜 로그인
+- **인증**: Naver 로그인, Firebase 관리자 인증. Kakao는 서버 콜백을 구성하기 전까지 비활성화
 
 ## ✨ 주요 기능
 
@@ -45,9 +45,13 @@ vindt-shop/
 
 ## 🔐 보안 아키텍처
 
-- **관리자 인증**: Firebase Authentication(이메일/비밀번호) 기반. 클라이언트에 자격증명을 두지 않습니다.
+- **관리자 인증**: Firebase Authentication(이메일/비밀번호) 기반. 클라이언트에 자격증명을 두지 않으며, Firestore/Storage 규칙은 Firebase custom claim `admin == true`를 요구합니다.
 - **Firestore 규칙**(`firestore.rules`): `products` 컬렉션은 누구나 읽기 가능, 쓰기는 관리자 계정만 허용. 그 외 경로는 전부 차단.
 - **Storage 규칙**(`storage.rules`): `product-images/`는 공개 읽기, 업로드·삭제는 관리자만.
+- **Kakao 경계**: 브라우저에서 authorization code를 token으로 교환하거나 provider token을 `localStorage`에 저장하지 않습니다. Kakao를 활성화하려면 REST key/client secret을 보관하는 서버 콜백과 애플리케이션 세션 경계를 먼저 제공해야 합니다.
+
+Firebase custom claim은 신뢰된 Admin SDK 경로에서만 설정해야 합니다. 클라이언트의 이메일이나
+localStorage 값은 관리자 권한의 근거로 사용하지 않습니다.
 
 ## ⚙️ Firebase 설정
 

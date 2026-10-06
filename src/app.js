@@ -37,10 +37,8 @@ const state = {
     allProducts: [] // Was [...STATIC_PRODUCTS]
 };
 
-const getKakaoRedirectUri = () => paymentConfig.kakao.redirectUri;
-
 /**
- * Cleans the URL by removing search parameters and hashes (OAuth tokens)
+ * Cleans the URL by removing search parameters and hashes
  * without refreshing the page.
  */
 function cleanUrl() {
@@ -117,7 +115,29 @@ function cacheDom() {
 
 // UTILITIES
 function formatPrice(price) {
-    return '₩' + price.toLocaleString('ko-KR');
+    const numericPrice = Number(price);
+    return '₩' + (Number.isFinite(numericPrice) ? numericPrice : 0).toLocaleString('ko-KR');
+}
+
+const HTML_ESCAPE_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+};
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => HTML_ESCAPE_MAP[character]);
+}
+
+function safeImageUrl(value) {
+    try {
+        const url = new URL(String(value ?? ''), window.location.origin);
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch {
+        return '';
+    }
 }
 
 function saveCart() {
@@ -207,17 +227,17 @@ function renderProductCard(product, showWishlist = true) {
 
     // Stock Display
     const stockDisplay = (product.stock !== undefined && product.stock !== null)
-        ? (product.stock > 0 ? `<span style="font-size:0.8rem; color:#666; margin-left:6px;">/ Left: ${product.stock}</span>` : '<span style="font-size:0.8rem; color:#e74c3c; margin-left:6px;">/ Sold Out</span>')
+        ? (product.stock > 0 ? `<span style="font-size:0.8rem; color:#666; margin-left:6px;">/ Left: ${escapeHtml(product.stock)}</span>` : '<span style="font-size:0.8rem; color:#e74c3c; margin-left:6px;">/ Sold Out</span>')
         : '';
 
     const actionButtons = showWishlist ? `
             <div class="nd-area-btn">
-                <span class="wish" data-product-id="${product.id}" onclick="event.stopPropagation()">
+                <span class="wish" data-product-id="${escapeHtml(product.id)}" onclick="event.stopPropagation()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                 </span>
-                <span class="cart" data-product-id="${product.id}" onclick="event.stopPropagation()">
+                <span class="cart" data-product-id="${escapeHtml(product.id)}" onclick="event.stopPropagation()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -227,16 +247,16 @@ function renderProductCard(product, showWishlist = true) {
         ` : '';
 
     return `
-            <article class="product-card" data-product-id="${product.id}">
+            <article class="product-card" data-product-id="${escapeHtml(product.id)}">
                 <div class="product-card__image-wrapper">
                     ${badge}
                     ${actionButtons}
                     ${discountBadge}
-                    <img src="${product.image}" alt="${product.title}" class="product-card__image" loading="lazy">
+                    <img src="${escapeHtml(safeImageUrl(product.image))}" alt="${escapeHtml(product.title)}" class="product-card__image" loading="lazy">
                 </div>
                 <div class="product-card__info">
-                    <span class="product-card__brand">${product.category}</span>
-                    <h3 class="product-card__title">${product.title}</h3>
+                    <span class="product-card__brand">${escapeHtml(product.category)}</span>
+                    <h3 class="product-card__title">${escapeHtml(product.title)}</h3>
                     <div class="product-card__price-row">
                         <span class="product-card__price">${formatPrice(product.price)}</span>
                         ${origPrice}
@@ -262,7 +282,7 @@ function renderProducts() {
 
 function renderModal(product) {
     const rows = product.measurements ? Object.entries(product.measurements)
-        .map(([k, v]) => `<tr><th>${k.charAt(0).toUpperCase() + k.slice(1)}</th><td>${v}</td></tr>`).join('') : '';
+        .map(([k, v]) => `<tr><th>${escapeHtml(k.charAt(0).toUpperCase() + k.slice(1))}</th><td>${escapeHtml(v)}</td></tr>`).join('') : '';
 
     // Check if ID matches (handle string vs number)
     const isWishlisted = state.wishlist.some(w => String(w.id) === String(product.id));
@@ -270,18 +290,18 @@ function renderModal(product) {
     DOM.modalContent.innerHTML = `
             <button class="modal__close">&times;</button>
             <div class="modal__content">
-                <div class="modal__gallery"><img src="${product.image}" alt="${product.title}" class="modal__image"></div>
+                <div class="modal__gallery"><img src="${escapeHtml(safeImageUrl(product.image))}" alt="${escapeHtml(product.title)}" class="modal__image"></div>
                 <div class="modal__details">
-                    <span class="modal__category">${product.category}</span>
-                    <h2 class="modal__title">${product.title}</h2>
+                    <span class="modal__category">${escapeHtml(product.category)}</span>
+                    <h2 class="modal__title">${escapeHtml(product.title)}</h2>
                     <p class="modal__price">${formatPrice(product.price)}</p>
-                    <p class="modal__description">${product.description || ''}</p>
+                    <p class="modal__description">${escapeHtml(product.description)}</p>
                     <table class="size-table"><tbody>${rows}</tbody></table>
                     <div style="display: flex; gap: 8px;">
-                        <button class="add-to-wishlist" data-product-id="${product.id}" style="flex:1; padding:16px; border:1px solid #333; background:${isWishlisted ? '#A52A2A' : 'transparent'}; color:${isWishlisted ? 'white' : '#333'}; cursor:pointer;">
+                        <button class="add-to-wishlist" data-product-id="${escapeHtml(product.id)}" style="flex:1; padding:16px; border:1px solid #333; background:${isWishlisted ? '#A52A2A' : 'transparent'}; color:${isWishlisted ? 'white' : '#333'}; cursor:pointer;">
                             ${isWishlisted ? '♥ Wishlisted' : '♡ Wishlist'}
                         </button>
-                        <button class="add-to-cart" data-product-id="${product.id}" ${product.soldOut ? 'disabled' : ''} style="flex:2;">
+                        <button class="add-to-cart" data-product-id="${escapeHtml(product.id)}" ${product.soldOut ? 'disabled' : ''} style="flex:2;">
                             ${product.soldOut ? 'Sold Out' : 'Add to Cart'}
                         </button>
                     </div>
@@ -306,12 +326,12 @@ function renderCart() {
         return;
     }
     DOM.cartItems.innerHTML = state.cart.map(item => `
-            <div class="cart-item" data-product-id="${item.id}">
-                <img src="${item.image}" alt="${item.title}" class="cart-item__image">
+            <div class="cart-item" data-product-id="${escapeHtml(item.id)}">
+                <img src="${escapeHtml(safeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" class="cart-item__image">
                 <div class="cart-item__info">
-                    <h4 class="cart-item__title">${item.title}</h4>
+                    <h4 class="cart-item__title">${escapeHtml(item.title)}</h4>
                     <p class="cart-item__price">${formatPrice(item.price)}</p>
-                    <button class="cart-item__remove" data-product-id="${item.id}">Remove</button>
+                    <button class="cart-item__remove" data-product-id="${escapeHtml(item.id)}">Remove</button>
                 </div>
             </div>
         `).join('');
@@ -329,12 +349,12 @@ function renderWishlist() {
         return;
     }
     DOM.wishlistItems.innerHTML = state.wishlist.map(item => `
-            <div class="cart-item" data-product-id="${item.id}">
-                <img src="${item.image}" alt="${item.title}" class="cart-item__image">
+            <div class="cart-item" data-product-id="${escapeHtml(item.id)}">
+                <img src="${escapeHtml(safeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" class="cart-item__image">
                 <div class="cart-item__info">
-                    <h4 class="cart-item__title">${item.title}</h4>
+                    <h4 class="cart-item__title">${escapeHtml(item.title)}</h4>
                     <p class="cart-item__price">${formatPrice(item.price)}</p>
-                    <button class="cart-item__remove" data-product-id="${item.id}">Remove</button>
+                    <button class="cart-item__remove" data-product-id="${escapeHtml(item.id)}">Remove</button>
                 </div>
             </div>
         `).join('');
@@ -419,7 +439,8 @@ function toggleWishlist(product) {
         state.wishlist = state.wishlist.filter(i => String(i.id) !== String(product.id));
     } else {
         state.wishlist.push({ id: product.id, title: product.title, price: product.price, image: product.image });
-        const btn = document.querySelector(`.product-card__wishlist[data-product-id="${product.id}"]`);
+        const btn = Array.from(document.querySelectorAll('.product-card__wishlist'))
+            .find(candidate => candidate.dataset.productId === String(product.id));
         if (btn) {
             btn.classList.add('animating');
             setTimeout(() => btn.classList.remove('animating'), 400);
@@ -537,10 +558,10 @@ function renderCheckoutItems() {
     const total = subtotal + shippingCost;
     DOM.checkoutItems.innerHTML = state.cart.map(item => `
         <div class="checkout-item">
-            <img src="${item.image}" alt="${item.title}" class="checkout-item__image">
+            <img src="${escapeHtml(safeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" class="checkout-item__image">
             <div class="checkout-item__details">
-                <div class="checkout-item__title">${item.title}</div>
-                <div class="checkout-item__meta">Size: ${item.size || 'M'}</div>
+                <div class="checkout-item__title">${escapeHtml(item.title)}</div>
+                <div class="checkout-item__meta">Size: ${escapeHtml(item.size || 'M')}</div>
             </div>
             <div class="checkout-item__price">${formatPrice(item.price)}</div>
         </div>
@@ -611,35 +632,36 @@ function renderBoardList(boardType) {
     DOM.boardList.innerHTML = data.map(item => {
         if (boardType === 'notice') {
             return `
-                    <div class="board-item" data-id="${item.id}">
+                    <div class="board-item" data-id="${escapeHtml(item.id)}">
                         <div class="board-item__header">
                             <div class="board-item__title">
                                 ${item.pinned ? '<span class="board-item__badge board-item__badge--pinned">📌 Pinned</span>' : ''}
-                                ${item.title}
+                                ${escapeHtml(item.title)}
                             </div>
                         </div>
                         <div class="board-item__meta">
-                            <span>${item.date}</span>
-                            <span>Views: ${item.views}</span>
-                            <span>${item.author}</span>
+                            <span>${escapeHtml(item.date)}</span>
+                            <span>Views: ${escapeHtml(item.views)}</span>
+                            <span>${escapeHtml(item.author)}</span>
                         </div>
                     </div>
                 `;
         } else if (boardType === 'review') {
-            const stars = '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating);
+            const rating = Math.max(0, Math.min(5, Number(item.rating) || 0));
+            const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
             return `
-                    <div class="board-item" data-id="${item.id}">
+                    <div class="board-item" data-id="${escapeHtml(item.id)}">
                         <div class="board-item__header">
                             <div class="board-item__title">
-                                ${item.title || item.productTitle}
+                                ${escapeHtml(item.title || item.productTitle)}
                                 ${item.verified ? '<span class="board-item__badge">✓ Verified</span>' : ''}
                             </div>
                             <span class="board-item__rating">${stars}</span>
                         </div>
                         <div class="board-item__meta">
-                            <span>${item.date}</span>
-                            <span>${item.author}</span>
-                            <span>👍 ${item.helpful}</span>
+                            <span>${escapeHtml(item.date)}</span>
+                            <span>${escapeHtml(item.author)}</span>
+                            <span>👍 ${escapeHtml(item.helpful)}</span>
                         </div>
                     </div>
                 `;
@@ -648,17 +670,17 @@ function renderBoardList(boardType) {
                 ? '<span class="board-item__badge board-item__badge--answered">답변완료</span>'
                 : '<span class="board-item__badge board-item__badge--waiting">답변대기</span>';
             return `
-                    <div class="board-item" data-id="${item.id}">
+                    <div class="board-item" data-id="${escapeHtml(item.id)}">
                         <div class="board-item__header">
                             <div class="board-item__title">
-                                ${item.secret ? '🔒 ' : ''}${item.question}
+                                ${item.secret ? '🔒 ' : ''}${escapeHtml(item.question)}
                                 ${statusBadge}
                             </div>
                         </div>
                         <div class="board-item__meta">
-                            <span>${item.date}</span>
-                            <span>${item.author}</span>
-                            ${item.productTitle ? `<span>Product: ${item.productTitle}</span>` : ''}
+                            <span>${escapeHtml(item.date)}</span>
+                            <span>${escapeHtml(item.author)}</span>
+                            ${item.productTitle ? `<span>Product: ${escapeHtml(item.productTitle)}</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -676,47 +698,48 @@ function renderBoardDetail(boardType, id) {
     if (boardType === 'notice') {
         html = `
                 <div class="board-detail__header">
-                    <h3 class="board-detail__title">${item.title}</h3>
+                    <h3 class="board-detail__title">${escapeHtml(item.title)}</h3>
                     <div class="board-detail__meta">
-                        <span>${item.date}</span>
-                        <span>${item.author}</span>
-                        <span>Views: ${item.views}</span>
+                        <span>${escapeHtml(item.date)}</span>
+                        <span>${escapeHtml(item.author)}</span>
+                        <span>Views: ${escapeHtml(item.views)}</span>
                     </div>
                 </div>
-                <div class="board-detail__content">${item.content}</div>
+                <div class="board-detail__content">${escapeHtml(item.content)}</div>
                 <button class="board-detail__back">← Back to List</button>
             `;
     } else if (boardType === 'review') {
-        const stars = '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating);
+        const rating = Math.max(0, Math.min(5, Number(item.rating) || 0));
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
         html = `
                 <div class="board-detail__header">
-                    <h3 class="board-detail__title">${item.title || item.productTitle}</h3>
+                    <h3 class="board-detail__title">${escapeHtml(item.title || item.productTitle)}</h3>
                     <div class="board-detail__meta">
                         <span class="board-item__rating">${stars}</span>
-                        <span>${item.date}</span>
-                        <span>${item.author}</span>
+                        <span>${escapeHtml(item.date)}</span>
+                        <span>${escapeHtml(item.author)}</span>
                         ${item.verified ? '<span>✓ Verified Purchase</span>' : ''}
                     </div>
                 </div>
-                <div class="board-detail__content">${item.content}</div>
-                <p style="color:#999;font-size:0.9rem;">👍 ${item.helpful} people found this helpful</p>
+                <div class="board-detail__content">${escapeHtml(item.content)}</div>
+                <p style="color:#999;font-size:0.9rem;">👍 ${escapeHtml(item.helpful)} people found this helpful</p>
                 <button class="board-detail__back">← Back to List</button>
             `;
     } else if (boardType === 'qna') {
         html = `
                 <div class="board-detail__header">
-                    <h3 class="board-detail__title">${item.question}</h3>
+                    <h3 class="board-detail__title">${escapeHtml(item.question)}</h3>
                     <div class="board-detail__meta">
-                        <span>${item.date}</span>
-                        <span>${item.author}</span>
-                        ${item.productTitle ? `<span>Product: ${item.productTitle}</span>` : ''}
+                        <span>${escapeHtml(item.date)}</span>
+                        <span>${escapeHtml(item.author)}</span>
+                        ${item.productTitle ? `<span>Product: ${escapeHtml(item.productTitle)}</span>` : ''}
                     </div>
                 </div>
-                <div class="board-detail__content">${item.secret ? '비밀글입니다.' : item.question}</div>
+                <div class="board-detail__content">${item.secret ? '비밀글입니다.' : escapeHtml(item.question)}</div>
                 ${item.answer ? `
                     <div class="board-detail__answer">
-                        <div class="board-detail__answer-label">관리자 답변 (${item.answerDate})</div>
-                        <div>${item.answer}</div>
+                        <div class="board-detail__answer-label">관리자 답변 (${escapeHtml(item.answerDate)})</div>
+                        <div>${escapeHtml(item.answer)}</div>
                     </div>
                 ` : '<p style="color:#999;">답변 대기 중입니다.</p>'}
                 <button class="board-detail__back">← Back to List</button>
@@ -733,7 +756,6 @@ function renderBoardDetail(boardType, id) {
 
 // LOGIN & USER FUNCTIONS
 function handleLoginSuccess(userProfile) {
-    console.log("Login success triggered with profile:", userProfile);
     state.user = {
         id: userProfile.id,
         name: userProfile.name || userProfile.nickname || 'User',
@@ -742,7 +764,6 @@ function handleLoginSuccess(userProfile) {
     };
     try {
         localStorage.setItem('vindteok_user', JSON.stringify(state.user));
-        console.log("User session saved to localStorage");
     } catch (e) {
         console.error("Failed to save user to localStorage", e);
     }
@@ -762,16 +783,12 @@ function handleLogout() {
         localStorage.removeItem('vindteok_wishlist');
         localStorage.removeItem('vindteok_recent');
 
-        // Invalidate the Kakao session so the next login asks for the account again
-        const kakaoToken = localStorage.getItem('vindteok_kakao_token');
-        localStorage.removeItem('vindteok_kakao_token');
-        localStorage.setItem('vindteok_force_login', '1');
-        if (kakaoToken && typeof Kakao !== 'undefined') {
+        // Let the supported SDK revoke its own token state. No provider token is
+        // copied into localStorage by this app.
+        localStorage.removeItem('vindteok_force_login');
+        if (typeof Kakao !== 'undefined' && Kakao.Auth && Kakao.Auth.getAccessToken()) {
             try {
-                Kakao.Auth.setAccessToken(kakaoToken);
-                Kakao.API.request({ url: '/v1/user/logout' })
-                    .catch(err => console.warn('Kakao logout warning:', err));
-                Kakao.Auth.setAccessToken(null);
+                Kakao.Auth.logout().catch(err => console.warn('Kakao logout warning:', err));
             } catch (innerE) {
                 console.warn("Kakao SDK logout warning:", innerE);
             }
@@ -800,7 +817,7 @@ function updateHeaderUser() {
     if (state.user) {
         loginBtn.innerHTML = `
                 <div class="user-menu-trigger">
-                    <span>${state.user.name}님</span>
+                    <span>${escapeHtml(state.user.name)}님</span>
                 </div>
             `;
         loginBtn.classList.add('logged-in');
@@ -828,7 +845,6 @@ function updateHeaderUser() {
 
 // INIT
 async function init() {
-    console.log("App initializing...");
     // 1. Initialize State & DOM
     // 1. Initialize State & DOM
     cacheDom();
@@ -840,21 +856,27 @@ async function init() {
 
     // --- Kakao Login Initialization ---
     try {
-        if (typeof Kakao !== 'undefined') {
+        const kakaoBtn = document.getElementById('kakao-login-btn');
+        const kakaoConfig = paymentConfig.kakao;
+        const kakaoConfigured = kakaoConfig.enabled
+            && kakaoConfig.jsKey
+            && kakaoConfig.jsKey !== 'KAKAO_JS_KEY_NOT_CONFIGURED'
+            && kakaoConfig.redirectUri;
+        if (kakaoBtn && (!kakaoConfigured || typeof Kakao === 'undefined')) {
+            kakaoBtn.disabled = true;
+            kakaoBtn.title = 'Kakao login requires a configured server-side callback';
+            kakaoBtn.setAttribute('aria-disabled', 'true');
+        } else if (kakaoBtn && typeof Kakao !== 'undefined') {
             if (!Kakao.isInitialized()) {
-                Kakao.init(paymentConfig.kakao.jsKey);
+                Kakao.init(kakaoConfig.jsKey);
             }
-            const kakaoBtn = document.getElementById('kakao-login-btn');
-            if (kakaoBtn) {
-                kakaoBtn.onclick = () => {
-                    const params = { redirectUri: getKakaoRedirectUri() };
-                    // After an explicit logout, force the account prompt instead of silent SSO re-login
-                    if (localStorage.getItem('vindteok_force_login') === '1') {
-                        params.prompt = 'login';
-                    }
-                    Kakao.Auth.authorize(params);
-                };
-            }
+            kakaoBtn.onclick = () => {
+                const params = { redirectUri: kakaoConfig.redirectUri };
+                if (localStorage.getItem('vindteok_force_login') === '1') {
+                    params.prompt = 'login';
+                }
+                Kakao.Auth.authorize(params);
+            };
         }
     } catch (e) {
         console.error("Kakao initialization failed:", e);
@@ -863,7 +885,6 @@ async function init() {
     // --- Naver Login Initialization ---
     try {
         if (typeof naver !== 'undefined' && naver.LoginWithNaverId) {
-            console.log("Initializing Naver Login SDK...");
             naverLogin = new naver.LoginWithNaverId({
                 clientId: "jBybTIyTT9X5nDtmDfnV",
                 callbackUrl: window.location.origin + "/",
@@ -874,7 +895,6 @@ async function init() {
 
             // Handle Naver Callback
             naverLogin.getLoginStatus(function (status) {
-                console.log("Naver login status check:", status);
                 if (status) {
                     const userProfile = {
                         id: naverLogin.user.getId(),
@@ -882,7 +902,6 @@ async function init() {
                         email: naverLogin.user.getEmail(),
                         profile_image: naverLogin.user.getProfileImage()
                     };
-                    console.log("Naver login success! User:", userProfile.name);
                     handleLoginSuccess(userProfile);
                     cleanUrl();
                 } else {
@@ -899,45 +918,10 @@ async function init() {
         console.error("Naver initialization failed:", e);
     }
 
-    // --- Kakao Login Callback Handling (client-side authorization code flow) ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const kakaoCode = urlParams.get('code');
-    const loginError = urlParams.get('error');
-
-    if (kakaoCode) {
-        (async () => {
-            try {
-                const tokenResp = await fetch('https://kauth.kakao.com/oauth/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
-                    body: new URLSearchParams({
-                        grant_type: 'authorization_code',
-                        client_id: paymentConfig.kakao.jsKey,
-                        redirect_uri: getKakaoRedirectUri(),
-                        code: kakaoCode
-                    })
-                });
-                const tokenData = await tokenResp.json();
-                if (tokenData.access_token) {
-                    Kakao.Auth.setAccessToken(tokenData.access_token);
-                    localStorage.setItem('vindteok_kakao_token', tokenData.access_token);
-                    localStorage.removeItem('vindteok_force_login');
-                    const me = await Kakao.API.request({ url: '/v2/user/me' });
-                    const acc = me.kakao_account || {};
-                    const prof = acc.profile || {};
-                    handleLoginSuccess({
-                        id: 'kakao_' + me.id,
-                        nickname: prof.nickname,
-                        email: acc.email,
-                        profile_image: prof.profile_image_url || prof.thumbnail_image_url
-                    });
-                } else {
-                    console.error('Kakao token exchange failed:', tokenData);
-                }
-            } catch (e) { console.error('Kakao login error', e); }
-            cleanUrl();
-        })();
-    } else if (loginError) {
+    // A Kakao authorization code must be handled by the configured server
+    // callback. Never exchange it or persist the resulting token in this page.
+    const loginError = new URLSearchParams(window.location.search).get('error');
+    if (loginError) {
         console.error('Kakao error:', loginError);
         cleanUrl();
     }
@@ -950,36 +934,23 @@ async function init() {
 
     // 2. Event Listeners
     // Header - with debugging
-    console.log("Setting up header event listeners...");
-    console.log("DOM elements:", {
-        hamburger: !!DOM.hamburger,
-        search: !!DOM.searchIcon,
-        wishlist: !!DOM.wishlistIcon,
-        cart: !!DOM.cartIcon,
-        login: !!DOM.loginIcon
-    });
-
     if (DOM.hamburger) {
         DOM.hamburger.addEventListener('click', function () {
-            console.log("Hamburger clicked!");
             toggleNav();
         });
     }
     if (DOM.cartIcon) {
         DOM.cartIcon.addEventListener('click', function () {
-            console.log("Cart clicked!");
             openCart();
         });
     }
     if (DOM.wishlistIcon) {
         DOM.wishlistIcon.addEventListener('click', function () {
-            console.log("Wishlist clicked!");
             openWishlist();
         });
     }
     if (DOM.searchIcon) {
         DOM.searchIcon.addEventListener('click', function () {
-            console.log("Search clicked!");
             openSearch();
         });
     }
@@ -989,7 +960,6 @@ async function init() {
 
     // Initialize login button based on user state
     updateHeaderUser();
-    console.log("Header event listeners setup complete");
 
     // Language Selector
     const langBtn = document.querySelector('.lang-selector__btn');
@@ -1151,13 +1121,10 @@ async function init() {
         btn.addEventListener('click', createRipple);
     });
 
-    console.log("UI Initialized. Loading Firebase...");
-
     // 3. Dynamic Firebase Import
     try {
         const module = await import('./firebase-client.js');
         if (module && module.listenForProductUpdates) {
-            console.log("Firebase loaded. Listening for updates...");
             module.listenForProductUpdates((products) => {
                 // Use only dynamic products from Firebase
                 state.allProducts = [...products];
